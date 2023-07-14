@@ -104,7 +104,7 @@ async function getUsers() {
     let functionCalls = await getAllFunctionCalls(contractAddress, "add_IOU");
     functionCalls.forEach(bill => {
         users.add(bill.from);       
-        users.add(bill.args[0]);    
+        users.add(bill.args[0]);   
     });
     return Array.from(users); 
 }
@@ -308,46 +308,42 @@ function check(name, condition) {
     }
 }
 
+
 async function sanityCheck() {
-    console.log("\nTEST", "Simplest possible test: only runs one add_IOU; uses all client functions: lookup, getTotalOwed, getUsers, getLastActive");
+	console.log ("\nTEST", "Simplest possible test: only runs one add_IOU; uses all client functions: lookup, getTotalOwed, getUsers, getLastActive");
 
-    var score = 0;
+	var score = 0;
 
-    var accounts = await provider.listAccounts();
-    defaultAccount = accounts[0];
+	var accounts = await provider.listAccounts();
+	defaultAccount = accounts[0];
 
-    var users = await getUsers();
-    score += check("getUsers() initially empty", users.length === 0);
+	var users = await getUsers();
+	score += check("getUsers() initially empty", users.length === 0);
 
-    var owed = await getTotalOwed(accounts[1]);
-    score += check("getTotalOwed(0) initially empty", owed === 0);
+	var owed = await getTotalOwed(accounts[1]);
+	score += check("getTotalOwed(0) initially empty", owed === 0);
 
-    var lookup_0_1 = await BlockchainSplitwise.lookup(accounts[0], accounts[1]);
-    console.log("lookup(0, 1) current value" + lookup_0_1);
-    score += check("lookup(0,1) initially 0", parseInt(lookup_0_1, 10) === 0);
+	var lookup_0_1 = await BlockchainSplitwise.lookup(accounts[0], accounts[1]);
+	console.log("lookup(0, 1) current value" + lookup_0_1);
+	score += check("lookup(0,1) initially 0", parseInt(lookup_0_1, 10) === 0);
 
-    var response = await add_IOU(accounts[1], "10");
+	var response = await add_IOU(accounts[1], "10");
 
-    users = await getUsers();
-    score += check("getUsers() now length 2", users.length === 2);
+	users = await getUsers();
+	score += check("getUsers() now length 2", users.length === 2);
 
-    owed = await getTotalOwed(accounts[0]);
-    console.log(owed)
-    score += check("getTotalOwed(0) now 10", owed === 10);
+	owed = await getTotalOwed(accounts[0]);
+	score += check("getTotalOwed(0) now 10", owed === 10);
 
-    lookup_0_1 = await BlockchainSplitwise.lookup(accounts[0], accounts[1]);
-    score += check("lookup(0,1) now 10", parseInt(lookup_0_1, 10) === 10);
+	lookup_0_1 = await BlockchainSplitwise.lookup(accounts[0], accounts[1]);
+	score += check("lookup(0,1) now 10", parseInt(lookup_0_1, 10) === 10);
 
-    defaultAccount = accounts[1];
+	var timeLastActive = await getLastActive(accounts[0]);
+	var timeNow = Date.now()/1000;
+	var difference = timeNow - timeLastActive;
+	score += check("getLastActive(0) works", difference <= 60 && difference >= -3); // -3 to 60 seconds
 
-    await add_IOU(accounts[2], "8");
-    lookup_1_2 = await BlockchainSplitwise.lookup(accounts[1], accounts[2]);
-    lookup_0_2 = await BlockchainSplitwise.lookup(accounts[0], accounts[2]);
-    console.log("lookup(1,2) now 8", parseInt(lookup_1_2, 10));
-    console.log("lookup(0,2) now 0", parseInt(lookup_0_2, 10));
-    check("lookup(0,1) now 10", parseInt(lookup_0_1, 10) === 10);
-
-    console.log("Final Score: " + score + "/21");
+	console.log("Final Score: " + score +"/21");
 }
 //
 sanityCheck() //Uncomment this line to run the sanity check when you first open index.html
